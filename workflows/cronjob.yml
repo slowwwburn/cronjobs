@@ -1,0 +1,21 @@
+name: Keep Render Services Awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # Runs every 10 minutes
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  wake-up:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show current time
+        run: echo "Cron job running at $(date)"
+
+      - name: Send HEAD requests
+        run: |
+          curl -I https://sharelink-auth.onrender.com/health
+          curl -I https://sharelink-campaigns.onrender.com/health
+          curl -I https://sharelink-integrations.onrender.com/health
+          curl -I https://sharelink-notifications.onrender.com/health
+          curl -I https://sharelink-wallet.onrender.com/health
