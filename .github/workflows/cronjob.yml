@@ -12,32 +12,32 @@ jobs:
       - name: Show current time
         run: echo "Cron job running at $(date)"
 
-      - name: Send HEAD requests asynchronously with response time output
+      - name: Send HEAD requests asynchronously and log response time & status
         run: |
           echo "Waking up Render services..."
 
-          # Run API calls in the background, extracting only the response time
-          curl -o /dev/null -s -w "%{time_total}\n" https://sharelink-auth.onrender.com/health > auth_time.log & pid1=$!
-          curl -o /dev/null -s -w "%{time_total}\n" https://sharelink-campaigns.onrender.com/health > campaigns_time.log & pid2=$!
-          curl -o /dev/null -s -w "%{time_total}\n" https://sharelink-integrations.onrender.com/health > integrations_time.log & pid3=$!
-          curl -o /dev/null -s -w "%{time_total}\n" https://sharelink-notifications.onrender.com/health > notifications_time.log & pid4=$!
-          curl -o /dev/null -s -w "%{time_total}\n" https://sharelink-wallet.onrender.com/health > wallet_time.log & pid5=$!
+          # Run API calls asynchronously and capture response time + status code
+          {
+            echo "[Auth Service] $(curl -o /dev/null -s -w "Time: %{time_total}s | Status: %{http_code}\n" https://sharelink-auth.onrender.com/health)"
+          } & 
 
-          # Show a spinner while waiting
-          spinner="/|\\-/"
-          while kill -0 $pid1 $pid2 $pid3 $pid4 $pid5 2> /dev/null; do
-            for i in $(seq 0 3); do
-              echo -ne "\rRunning ${spinner:i:1}"
-              sleep 0.2
-            done
-          done
+          {
+            echo "[Campaigns Service] $(curl -o /dev/null -s -w "Time: %{time_total}s | Status: %{http_code}\n" https://sharelink-campaigns.onrender.com/health)"
+          } & 
 
-          echo -e "\nAll services pinged successfully!\n"
+          {
+            echo "[Integrations Service] $(curl -o /dev/null -s -w "Time: %{time_total}s | Status: %{http_code}\n" https://sharelink-integrations.onrender.com/health)"
+          } & 
 
-          # Print response times
-          echo "---- API Response Times (in seconds) ----"
-          echo "[Auth Service] $(cat auth_time.log)s"
-          echo "[Campaigns Service] $(cat campaigns_time.log)s"
-          echo "[Integrations Service] $(cat integrations_time.log)s"
-          echo "[Notifications Service] $(cat notifications_time.log)s"
-          echo "[Wallet Service] $(cat wallet_time.log)s"
+          {
+            echo "[Notifications Service] $(curl -o /dev/null -s -w "Time: %{time_total}s | Status: %{http_code}\n" https://sharelink-notifications.onrender.com/health)"
+          } & 
+
+          {
+            echo "[Wallet Service] $(curl -o /dev/null -s -w "Time: %{time_total}s | Status: %{http_code}\n" https://sharelink-wallet.onrender.com/health)"
+          } & 
+
+          # Wait for all background processes to finish
+          wait
+
+          echo "All API calls completed!"
